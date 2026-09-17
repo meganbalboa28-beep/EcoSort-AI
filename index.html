@@ -5,14 +5,14 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>EcoSort AI</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
 
     <style>
 
@@ -38,6 +38,7 @@
 
         }
 
+
         #inicio {
 
             text-align: center;
@@ -56,6 +57,7 @@
 
         }
 
+
         #inicio h1 {
 
             color: #218c4a;
@@ -66,11 +68,13 @@
 
         }
 
+
         #inicio h2 {
 
             color: #333;
 
         }
+
 
         #inicio p {
 
@@ -81,6 +85,7 @@
             line-height: 1.5;
 
         }
+
 
         button {
 
@@ -102,6 +107,7 @@
 
         }
 
+
         #app {
 
             text-align: center;
@@ -112,11 +118,13 @@
 
         }
 
+
         #app h1 {
 
             color: #218c4a;
 
         }
+
 
         #camara {
 
@@ -124,11 +132,12 @@
 
         }
 
+
         #resultado {
 
             background: white;
 
-            padding: 18px;
+            padding: 20px;
 
             margin: 20px auto;
 
@@ -137,6 +146,8 @@
             max-width: 400px;
 
             font-size: 18px;
+
+            line-height: 1.4;
 
         }
 
@@ -155,15 +166,22 @@
     <h2>Tacho inteligente</h2>
 
     <p>
+
         Acerca tu residuo a la cámara
+
         y presiona <b>COMENZAR</b>.
+
     </p>
 
+
     <button id="comenzar">
+
         COMENZAR
+
     </button>
 
 </div>
+
 
 
 <div id="app" style="display:none;">
@@ -173,17 +191,27 @@
     <div id="camara"></div>
 
     <div id="resultado">
+
         Esperando residuo...
+
     </div>
 
 </div>
 
 
+
 <script>
 
 
+// MODELO DE TEACHABLE MACHINE
+
 const URL =
 "https://teachablemachine.withgoogle.com/models/y9AIk9YfX/";
+
+
+// ESTE CELULAR ES EL TACHO ORGÁNICO
+
+const TACHO = "organico";
 
 
 let model = null;
@@ -193,15 +221,19 @@ let webcam = null;
 let iniciada = false;
 
 
+
+// BOTÓN COMENZAR
+
 document
 .getElementById("comenzar")
 .addEventListener("click", iniciar);
 
 
+
 async function iniciar() {
 
 
-    // EVITA QUE LA CÁMARA SE DUPLIQUE
+    // Evita que la cámara se duplique
 
     if (iniciada) {
 
@@ -240,12 +272,16 @@ async function iniciar() {
         URL + "metadata.json";
 
 
+        // Cargar modelo
+
         model =
         await tmImage.load(
             modelURL,
             metadataURL
         );
 
+
+        // Crear cámara
 
         webcam =
         new tmImage.Webcam(
@@ -269,7 +305,9 @@ async function iniciar() {
         document
         .getElementById("resultado")
         .innerHTML =
+
         "📷 Cámara lista.<br><br>" +
+
         "Acerca un residuo.";
 
 
@@ -285,6 +323,7 @@ async function iniciar() {
         document
         .getElementById("resultado")
         .innerHTML =
+
         "❌ No se pudo iniciar la cámara.";
 
 
@@ -293,6 +332,7 @@ async function iniciar() {
     }
 
 }
+
 
 
 async function detectar() {
@@ -308,11 +348,15 @@ async function detectar() {
     webcam.update();
 
 
+    // Reconocer residuo
+
     const predicciones =
     await model.predict(
         webcam.canvas
     );
 
+
+    // Buscar la predicción más segura
 
     let mayor =
     predicciones[0];
@@ -338,24 +382,88 @@ async function detectar() {
     }
 
 
+    const clase =
+    mayor.className.toLowerCase();
+
+
     const confianza =
     Math.round(
         mayor.probability * 100
     );
 
 
+    let mensaje = "";
+
+
+    // RESIDUO ORGÁNICO
+
+    if (clase === "organico") {
+
+
+        mensaje =
+
+        "✅ <b>¡Este residuo va aquí!</b><br><br>" +
+
+        "Es un residuo orgánico.<br><br>" +
+
+        "Puedes introducirlo en este tacho.";
+
+
+    }
+
+
+    // PLÁSTICO
+
+    else if (clase === "plastico") {
+
+
+        mensaje =
+
+        "❌ <b>Este residuo no va aquí.</b><br><br>" +
+
+        "Es plástico.<br><br>" +
+
+        "🧴 Busca el tacho de plásticos.";
+
+
+    }
+
+
+    // CARTÓN
+
+    else if (clase === "carton") {
+
+
+        mensaje =
+
+        "❌ <b>Este residuo no va aquí.</b><br><br>" +
+
+        "Es cartón.<br><br>" +
+
+        "📦 Busca el tacho de cartón.";
+
+
+    }
+
+
+    // MOSTRAR RESULTADO
+
     document
     .getElementById("resultado")
     .innerHTML =
 
-    "♻️ Residuo detectado: <b>" +
-    mayor.className +
-    "</b><br><br>" +
+    mensaje +
+
+    "<br><br>" +
 
     "Precisión: " +
+
     confianza +
+
     "%";
 
+
+    // Seguir reconociendo
 
     requestAnimationFrame(
         detectar
@@ -365,6 +473,7 @@ async function detectar() {
 
 
 </script>
+
 
 </body>
 
