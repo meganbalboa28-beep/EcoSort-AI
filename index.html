@@ -1,4 +1,4 @@
-  ```html
+```html
 <!DOCTYPE html>
 <html lang="es">
 
@@ -12,12 +12,7 @@
     <title>EcoSort AI</title>
 
 
-    <!-- TensorFlow -->
-
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-
-
-    <!-- Teachable Machine -->
 
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
 
@@ -49,7 +44,8 @@
 
 
         #inicio,
-        #final {
+        #final,
+        #temporizador {
 
             text-align: center;
 
@@ -63,8 +59,7 @@
 
             max-width: 400px;
 
-            box-shadow:
-                0 5px 20px rgba(0,0,0,0.12);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.12);
 
         }
 
@@ -146,12 +141,12 @@
 
             border-radius: 20px;
 
-            max-width: 100%;
-
         }
 
 
         #resultado {
+
+            display: none;
 
             background: white;
 
@@ -171,6 +166,33 @@
 
 
         #desechar {
+
+            display: none;
+
+        }
+
+
+        #temporizador {
+
+            display: none;
+
+        }
+
+
+        #numero {
+
+            font-size: 80px;
+
+            font-weight: bold;
+
+            color: #218c4a;
+
+            margin: 20px 0;
+
+        }
+
+
+        #listo {
 
             display: none;
 
@@ -224,23 +246,13 @@
 <!-- APLICACIÓN -->
 <!-- ========================= -->
 
-<div id="app"
-
-     style="display:none;">
-
+<div id="app" style="display:none;">
 
     <h1>♻️ EcoSort AI</h1>
 
-
     <div id="camara"></div>
 
-
-    <div id="resultado">
-
-        Esperando residuo...
-
-    </div>
-
+    <div id="resultado"></div>
 
     <button id="desechar">
 
@@ -248,6 +260,39 @@
 
     </button>
 
+</div>
+
+
+
+<!-- ========================= -->
+<!-- TEMPORIZADOR -->
+<!-- ========================= -->
+
+<div id="temporizador">
+
+    <h1>🗑️ ¡Desecha tu residuo!</h1>
+
+    <p>
+
+        Tienes tiempo para colocar
+
+        correctamente el residuo.
+
+    </p>
+
+
+    <div id="numero">
+
+        8
+
+    </div>
+
+
+    <button id="listo">
+
+        LISTO
+
+    </button>
 
 </div>
 
@@ -285,20 +330,18 @@
 
 
 // =====================================
-// MODELO DE TEACHABLE MACHINE
+// MODELO
 // =====================================
 
 const URL =
 "https://teachablemachine.withgoogle.com/models/y9AIk9YfX/";
 
 
-
 // =====================================
-// ESTE CELULAR ES EL TACHO ORGÁNICO
+// TACHO ORGÁNICO
 // =====================================
 
 const TACHO = "organico";
-
 
 
 let model = null;
@@ -306,6 +349,8 @@ let model = null;
 let webcam = null;
 
 let iniciada = false;
+
+let cuentaRegresiva = null;
 
 
 
@@ -325,8 +370,6 @@ document
 async function iniciar() {
 
 
-    // Evita abrir dos cámaras
-
     if (iniciada) {
 
         return;
@@ -337,30 +380,20 @@ async function iniciar() {
     iniciada = true;
 
 
-    // Ocultar inicio
-
     document
     .getElementById("inicio")
-    .style.display = "none";
+    .style.display =
+    "none";
 
-
-    // Mostrar aplicación
 
     document
     .getElementById("app")
-    .style.display = "block";
-
-
-    document
-    .getElementById("resultado")
-    .innerHTML =
-    "⏳ Cargando modelo...";
+    .style.display =
+    "block";
 
 
     try {
 
-
-        // Cargar modelo
 
         const modelURL =
         URL + "model.json";
@@ -377,8 +410,6 @@ async function iniciar() {
         );
 
 
-        // Crear cámara
-
         webcam =
         new tmImage.Webcam(
             300,
@@ -387,17 +418,11 @@ async function iniciar() {
         );
 
 
-        // Pedir permiso
-
         await webcam.setup();
 
 
-        // Encender cámara
-
         await webcam.play();
 
-
-        // Mostrar cámara
 
         document
         .getElementById("camara")
@@ -405,17 +430,6 @@ async function iniciar() {
             webcam.canvas
         );
 
-
-        document
-        .getElementById("resultado")
-        .innerHTML =
-
-        "📷 <b>Cámara lista.</b><br><br>" +
-
-        "Acerca un residuo.";
-
-
-        // Empezar reconocimiento
 
         detectar();
 
@@ -428,13 +442,6 @@ async function iniciar() {
         console.error(error);
 
 
-        document
-        .getElementById("resultado")
-        .innerHTML =
-
-        "❌ No se pudo iniciar la cámara.";
-
-
         iniciada = false;
 
     }
@@ -444,7 +451,7 @@ async function iniciar() {
 
 
 // =====================================
-// RECONOCIMIENTO CONTINUO
+// RECONOCIMIENTO
 // =====================================
 
 async function detectar() {
@@ -457,21 +464,14 @@ async function detectar() {
     }
 
 
-    // Actualizar imagen de cámara
-
     webcam.update();
 
 
-    // Analizar imagen
-
     const predicciones =
-
     await model.predict(
         webcam.canvas
     );
 
-
-    // Buscar la clase con mayor confianza
 
     let mayor =
     predicciones[0];
@@ -485,11 +485,8 @@ async function detectar() {
 
 
         if (
-
             predicciones[i].probability >
-
             mayor.probability
-
         ) {
 
 
@@ -501,19 +498,24 @@ async function detectar() {
     }
 
 
-    // Nombre de la clase
-
     const clase =
+    mayor.className.toLowerCase();
 
-    mayor.className
-    .toLowerCase();
-
-
-    // Porcentaje de confianza
 
     const confianza =
-
     mayor.probability * 100;
+
+
+    const resultado =
+    document.getElementById(
+        "resultado"
+    );
+
+
+    const boton =
+    document.getElementById(
+        "desechar"
+    );
 
 
 
@@ -524,18 +526,16 @@ async function detectar() {
     if (confianza < 80) {
 
 
-        document
-        .getElementById("resultado")
-        .innerHTML =
-
-        "📷 <b>Acerca un residuo a la cámara.</b><br><br>" +
-
-        "Esperando para reconocerlo...";
+        resultado.style.display =
+        "none";
 
 
-        document
-        .getElementById("desechar")
-        .style.display = "none";
+        resultado.innerHTML =
+        "";
+
+
+        boton.style.display =
+        "none";
 
     }
 
@@ -550,15 +550,11 @@ async function detectar() {
     ) {
 
 
-        document
-        .getElementById("resultado")
-        .innerHTML =
+        resultado.innerHTML =
 
         "✅ <b>¡Este residuo va aquí!</b><br><br>" +
 
         "Es un residuo orgánico.<br><br>" +
-
-        "Puedes introducirlo en este tacho.<br><br>" +
 
         "Precisión: " +
 
@@ -567,9 +563,11 @@ async function detectar() {
         "%";
 
 
-        document
-        .getElementById("desechar")
-        .style.display =
+        resultado.style.display =
+        "block";
+
+
+        boton.style.display =
         "inline-block";
 
     }
@@ -585,9 +583,7 @@ async function detectar() {
     ) {
 
 
-        document
-        .getElementById("resultado")
-        .innerHTML =
+        resultado.innerHTML =
 
         "❌ <b>Este residuo no va aquí.</b><br><br>" +
 
@@ -602,9 +598,11 @@ async function detectar() {
         "%";
 
 
-        document
-        .getElementById("desechar")
-        .style.display =
+        resultado.style.display =
+        "block";
+
+
+        boton.style.display =
         "none";
 
     }
@@ -620,9 +618,7 @@ async function detectar() {
     ) {
 
 
-        document
-        .getElementById("resultado")
-        .innerHTML =
+        resultado.innerHTML =
 
         "❌ <b>Este residuo no va aquí.</b><br><br>" +
 
@@ -637,18 +633,15 @@ async function detectar() {
         "%";
 
 
-        document
-        .getElementById("desechar")
-        .style.display =
+        resultado.style.display =
+        "block";
+
+
+        boton.style.display =
         "none";
 
     }
 
-
-
-    // =================================
-    // CONTINUAR PARA SIEMPRE
-    // =================================
 
     requestAnimationFrame(
         detectar
@@ -666,12 +659,12 @@ document
 .getElementById("desechar")
 .addEventListener(
     "click",
-    finalizar
+    comenzarTemporizador
 );
 
 
 
-function finalizar() {
+function comenzarTemporizador() {
 
 
     // Detener cámara
@@ -691,7 +684,102 @@ function finalizar() {
     "none";
 
 
-    // Mostrar mensaje final
+    // Mostrar temporizador
+
+    document
+    .getElementById("temporizador")
+    .style.display =
+    "block";
+
+
+    // Ocultar botón LISTO al inicio
+
+    document
+    .getElementById("listo")
+    .style.display =
+    "none";
+
+
+    let tiempo = 8;
+
+
+    document
+    .getElementById("numero")
+    .innerHTML =
+    tiempo;
+
+
+    cuentaRegresiva =
+    setInterval(
+        function() {
+
+
+            tiempo--;
+
+
+            document
+            .getElementById("numero")
+            .innerHTML =
+            tiempo;
+
+
+            // Cuando termina
+
+            if (tiempo <= 0) {
+
+
+                clearInterval(
+                    cuentaRegresiva
+                );
+
+
+                document
+                .getElementById("numero")
+                .innerHTML =
+                "✓";
+
+
+                document
+                .getElementById("listo")
+                .style.display =
+                "inline-block";
+
+            }
+
+        },
+
+        1000
+    );
+
+}
+
+
+
+// =====================================
+// BOTÓN LISTO
+// =====================================
+
+document
+.getElementById("listo")
+.addEventListener(
+    "click",
+    finalizar
+);
+
+
+
+function finalizar() {
+
+
+    // Ocultar temporizador
+
+    document
+    .getElementById("temporizador")
+    .style.display =
+    "none";
+
+
+    // Mostrar pantalla final
 
     document
     .getElementById("final")
@@ -707,4 +795,3 @@ function finalizar() {
 </body>
 
 </html>
-```
