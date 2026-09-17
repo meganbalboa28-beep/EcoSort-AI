@@ -91,6 +91,7 @@
 <script>
 
 const URL = "https://teachablemachine.withgoogle.com/models/y9AIk9YfX/";
+const URL = "https://teachablemachine.withgoogle.com/models/y9AIk9YfX/";
 
 let model;
 let webcam;
@@ -142,26 +143,37 @@ async function predecir() {
             mayor = predicciones[i];
         }
     }
+const clase = mayor.className.toLowerCase();
+const confianza = Math.round(mayor.probability * 100);
 
-    const clase = mayor.className.toLowerCase();
-    const confianza = Math.round(mayor.probability * 100);
+let mensaje = "";
 
-    let mensaje = "";
+if (clase.includes(TACHO)) {
+
+    mensaje = "✅ ¡Este residuo va aquí!<br><br>" +
+              "Introduce tu desecho en el tacho de " + TACHO + ".";
+
+} else {
+
+    mensaje = "❌ Este residuo no va aquí.<br><br>" +
+              "Este residuo es: " + mayor.className +
+              ".<br><br>Busca el tacho correspondiente.";
+}
 
     if (clase.includes("organ")) {
 
-        mensaje = "🍎 Es un residuo ORGÁNICO.<br><br>" +
-                  "Introduce tu desecho en el tacho de orgánicos.";
+        mensaje = "🍎 Es un residuo ORGANICO.<br><br>" +
+                  "Introduce tu desecho en el tacho de organicos.";
 
     } else if (clase.includes("plast")) {
 
-        mensaje = "🥤 Es un residuo de PLÁSTICO.<br><br>" +
-                  "Introduce tu desecho en el tacho de plásticos.";
+        mensaje = "🥤 Es un residuo de PLASTICO.<br><br>" +
+                  "Introduce tu desecho en el tacho de plasticos.";
 
     } else if (clase.includes("cart")) {
 
-        mensaje = "📦 Es un residuo de CARTÓN.<br><br>" +
-                  "Introduce tu desecho en el tacho de cartón.";
+        mensaje = "📦 Es un residuo de CARTON.<br><br>" +
+                  "Introduce tu desecho en el tacho de carton.";
 
     } else {
 
