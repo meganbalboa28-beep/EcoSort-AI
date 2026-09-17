@@ -2,17 +2,13 @@
 <html lang="es">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>EcoSort AI</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
-
 
     <style>
 
@@ -21,134 +17,82 @@
         }
 
         body {
-
             margin: 0;
-
             min-height: 100vh;
-
             display: flex;
-
             justify-content: center;
-
             align-items: center;
-
             font-family: Arial, sans-serif;
-
             background: #eaf7ee;
-
         }
 
-
-        #inicio {
-
+        #inicio,
+        #final {
             text-align: center;
-
             background: white;
-
             padding: 40px 30px;
-
             border-radius: 25px;
-
             width: 90%;
-
             max-width: 400px;
-
             box-shadow: 0 5px 20px rgba(0,0,0,0.12);
-
         }
 
-
-        #inicio h1 {
-
+        h1 {
             color: #218c4a;
-
             font-size: 32px;
-
-            margin-bottom: 10px;
-
         }
 
-
-        #inicio h2 {
-
+        h2 {
             color: #333;
-
         }
 
-
-        #inicio p {
-
+        p {
             color: #555;
-
             font-size: 17px;
-
             line-height: 1.5;
-
         }
-
 
         button {
-
             background: #218c4a;
-
             color: white;
-
             border: none;
-
             padding: 15px 35px;
-
             border-radius: 12px;
-
             font-size: 18px;
-
             cursor: pointer;
-
             margin-top: 15px;
-
         }
-
 
         #app {
-
             text-align: center;
-
             width: 100%;
-
             padding: 20px;
-
         }
-
 
         #app h1 {
-
             color: #218c4a;
-
         }
-
 
         #camara {
-
             margin-top: 20px;
-
         }
 
-
         #resultado {
-
             background: white;
-
             padding: 20px;
-
             margin: 20px auto;
-
             border-radius: 15px;
-
             max-width: 400px;
-
             font-size: 18px;
-
             line-height: 1.4;
+        }
 
+        #desechar {
+            display: none;
+        }
+
+        #final {
+            display: none;
         }
 
     </style>
@@ -159,6 +103,8 @@
 <body>
 
 
+<!-- PANTALLA INICIAL -->
+
 <div id="inicio">
 
     <h1>♻️ EcoSort AI</h1>
@@ -166,23 +112,18 @@
     <h2>Tacho inteligente</h2>
 
     <p>
-
         Acerca tu residuo a la cámara
-
         y presiona <b>COMENZAR</b>.
-
     </p>
 
-
     <button id="comenzar">
-
         COMENZAR
-
     </button>
 
 </div>
 
 
+<!-- APLICACIÓN -->
 
 <div id="app" style="display:none;">
 
@@ -191,13 +132,30 @@
     <div id="camara"></div>
 
     <div id="resultado">
-
         Esperando residuo...
-
     </div>
+
+    <button id="desechar">
+        DESECHAR
+    </button>
 
 </div>
 
+
+<!-- PANTALLA FINAL -->
+
+<div id="final">
+
+    <h1>♻️ ¡Gracias!</h1>
+
+    <h2>🌱 Sigue desechando responsablemente</h2>
+
+    <p>
+        Cada residuo bien separado
+        ayuda a cuidar nuestro planeta.
+    </p>
+
+</div>
 
 
 <script>
@@ -220,6 +178,8 @@ let webcam = null;
 
 let iniciada = false;
 
+let residuoCorrecto = false;
+
 
 
 // BOTÓN COMENZAR
@@ -233,12 +193,10 @@ document
 async function iniciar() {
 
 
-    // Evita que la cámara se duplique
+    // Evita duplicar la cámara
 
     if (iniciada) {
-
         return;
-
     }
 
 
@@ -272,16 +230,12 @@ async function iniciar() {
         URL + "metadata.json";
 
 
-        // Cargar modelo
-
         model =
         await tmImage.load(
             modelURL,
             metadataURL
         );
 
-
-        // Crear cámara
 
         webcam =
         new tmImage.Webcam(
@@ -305,9 +259,7 @@ async function iniciar() {
         document
         .getElementById("resultado")
         .innerHTML =
-
         "📷 Cámara lista.<br><br>" +
-
         "Acerca un residuo.";
 
 
@@ -323,7 +275,6 @@ async function iniciar() {
         document
         .getElementById("resultado")
         .innerHTML =
-
         "❌ No se pudo iniciar la cámara.";
 
 
@@ -339,24 +290,26 @@ async function detectar() {
 
 
     if (!webcam || !model) {
-
         return;
+    }
 
+
+    // Si ya encontró un residuo correcto,
+    // dejamos de cambiar el mensaje.
+
+    if (residuoCorrecto) {
+        return;
     }
 
 
     webcam.update();
 
 
-    // Reconocer residuo
-
     const predicciones =
     await model.predict(
         webcam.canvas
     );
 
-
-    // Buscar la predicción más segura
 
     let mayor =
     predicciones[0];
@@ -367,7 +320,6 @@ async function detectar() {
         i < predicciones.length;
         i++
     ) {
-
 
         if (
             predicciones[i].probability >
@@ -395,9 +347,12 @@ async function detectar() {
     let mensaje = "";
 
 
-    // RESIDUO ORGÁNICO
+    // ORGÁNICO
 
     if (clase === "organico") {
+
+
+        residuoCorrecto = true;
 
 
         mensaje =
@@ -407,6 +362,11 @@ async function detectar() {
         "Es un residuo orgánico.<br><br>" +
 
         "Puedes introducirlo en este tacho.";
+
+
+        document
+        .getElementById("desechar")
+        .style.display = "inline-block";
 
 
     }
@@ -426,6 +386,10 @@ async function detectar() {
         "🧴 Busca el tacho de plásticos.";
 
 
+        document
+        .getElementById("desechar")
+        .style.display = "none";
+
     }
 
 
@@ -443,10 +407,12 @@ async function detectar() {
         "📦 Busca el tacho de cartón.";
 
 
+        document
+        .getElementById("desechar")
+        .style.display = "none";
+
     }
 
-
-    // MOSTRAR RESULTADO
 
     document
     .getElementById("resultado")
@@ -463,11 +429,40 @@ async function detectar() {
     "%";
 
 
-    // Seguir reconociendo
-
     requestAnimationFrame(
         detectar
     );
+
+}
+
+
+
+// BOTÓN DESECHAR
+
+document
+.getElementById("desechar")
+.addEventListener("click", finalizar);
+
+
+
+function finalizar() {
+
+
+    // Detener cámara
+
+    if (webcam) {
+        webcam.stop();
+    }
+
+
+    document
+    .getElementById("app")
+    .style.display = "none";
+
+
+    document
+    .getElementById("final")
+    .style.display = "block";
 
 }
 
