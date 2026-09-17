@@ -13,37 +13,37 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            background: #f4f8f3;
+            background: #eaf7ee;
             margin: 0;
             padding: 25px;
         }
 
-        .app {
-            max-width: 500px;
-            margin: auto;
-            background: white;
-            padding: 25px;
-            border-radius: 25px;
-        }
-
         h1 {
-            font-size: 35px;
-            margin-bottom: 5px;
+            color: #218c4a;
+            font-size: 32px;
         }
 
         h2 {
-            margin-top: 10px;
+            color: #333;
+        }
+
+        p {
+            font-size: 18px;
         }
 
         button {
-            background: #2e7d32;
+            background: #218c4a;
             color: white;
             border: none;
-            padding: 18px 35px;
-            font-size: 20px;
-            border-radius: 15px;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 18px;
             cursor: pointer;
-            margin-top: 20px;
+            margin: 15px;
+        }
+
+        button:hover {
+            background: #176b38;
         }
 
         #camera {
@@ -51,9 +51,13 @@
         }
 
         #resultado {
-            font-size: 22px;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 400px;
+            font-size: 20px;
             font-weight: bold;
-            margin-top: 20px;
         }
 
         #reiniciar {
@@ -64,130 +68,175 @@
 
 <body>
 
-<div class="app">
+    <div id="inicio">
+        <h1>♻️ EcoSort AI</h1>
 
-    <h1>♻️ EcoSort AI</h1>
+        <h2>Tacho inteligente</h2>
 
-    <h2 id="titulo">Tacho inteligente</h2>
+        <p>
+            Acerca tu residuo y presiona <b>COMENZAR</b>.
+        </p>
 
-    <p id="instruccion">
-        Acerca tu residuo y presiona COMENZAR.
-    </p>
+        <button id="comenzar" onclick="iniciar()">
+            COMENZAR
+        </button>
+    </div>
 
-    <button id="comenzar" onclick="iniciar()"> COMENZAR</button>
+    <div id="app" style="display:none;">
 
-    <div id="camera"></div>
+        <h1>♻️ EcoSort AI</h1>
 
-    <div id="resultado"></div>
+        <div id="camera"></div>
 
-    <button id="reiniciar" onclick="reiniciar()">
-        VOLVER A INTENTAR
-    </button>
+        <div id="resultado">
+            Esperando residuo...
+        </div>
 
-</div>
+        <button id="reiniciar" onclick="location.reload()">
+            VOLVER A COMENZAR
+        </button>
+
+    </div>
 
 <script>
 
-const URL = "https://teachablemachine.withgoogle.com/models/y9AIk9YfX/";
-const URL = "https://teachablemachine.withgoogle.com/models/y9AIk9YfX/";
+    // MODELO DE TEACHABLE MACHINE
+    const URL = "https://teachablemachine.withgoogle.com/models/y9AIk9YfX/";
 
-let model;
-let webcam;
-let maxPredictions;
+    // ESTE CELULAR ES EL TACHO DE ORGÁNICOS
+    const TACHO = "organico";
 
-async function iniciar() {
+    let model;
+    let webcam;
+    let maxPredictions;
 
-    document.getElementById("comenzar").style.display = "none";
 
-    document.getElementById("instruccion").innerText =
-        "Apunta la cámara hacia tu residuo...";
+    // INICIAR LA APP
+    async function iniciar() {
 
-    const modelURL = URL + "model.json";
-    const metadataURL = URL + "metadata.json";
+        console.log("Botón COMENZAR presionado");
 
-    model = await tmImage.load(modelURL, metadataURL);
+        document.getElementById("inicio").style.display = "none";
+        document.getElementById("app").style.display = "block";
 
-    maxPredictions = model.getTotalClasses();
+        try {
 
-    webcam = new tmImage.Webcam(300, 300, true);
+            document.getElementById("resultado").innerHTML =
+                "⏳ Cargando cámara...";
 
-    await webcam.setup();
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
 
-    await webcam.play();
+            model = await tmImage.load(modelURL, metadataURL);
 
-    document.getElementById("camera").appendChild(webcam.canvas);
+            maxPredictions = model.getTotalClasses();
 
-    window.requestAnimationFrame(loop);
-}
+            webcam = new tmImage.Webcam(300, 300, true);
 
-async function loop() {
+            await webcam.setup();
 
-    webcam.update();
+            await webcam.play();
 
-    await predecir();
+            document.getElementById("camera").appendChild(webcam.canvas);
 
-    window.requestAnimationFrame(loop);
-}
+            document.getElementById("resultado").innerHTML =
+                "📷 Cámara lista.<br><br>Acerca un residuo.";
 
-async function predecir() {
+            document.getElementById("reiniciar").style.display = "inline-block";
 
-    const predicciones = await model.predict(webcam.canvas);
+            window.requestAnimationFrame(loop);
 
-    let mayor = predicciones[0];
+        } catch (error) {
 
-    for (let i = 1; i < predicciones.length; i++) {
+            console.error(error);
 
-        if (predicciones[i].probability > mayor.probability) {
-            mayor = predicciones[i];
+            document.getElementById("resultado").innerHTML =
+                "❌ No se pudo iniciar la cámara.<br><br>" +
+                "Revisa que hayas permitido el acceso a la cámara.";
+
         }
     }
-const clase = mayor.className.toLowerCase();
-const confianza = Math.round(mayor.probability * 100);
 
-let mensaje = "";
 
-if (clase.includes(TACHO)) {
+    // REPETIR LA RECONOCIMIENTO
+    async function loop() {
 
-    mensaje = "✅ ¡Este residuo va aquí!<br><br>" +
-              "Introduce tu desecho en el tacho de " + TACHO + ".";
+        if (webcam) {
 
-} else {
+            webcam.update();
 
-    mensaje = "❌ Este residuo no va aquí.<br><br>" +
-              "Este residuo es: " + mayor.className +
-              ".<br><br>Busca el tacho correspondiente.";
-}
+            await predecir();
 
-    if (clase.includes("organ")) {
-
-        mensaje = "🍎 Es un residuo ORGANICO.<br><br>" +
-                  "Introduce tu desecho en el tacho de organicos.";
-
-    } else if (clase.includes("plast")) {
-
-        mensaje = "🥤 Es un residuo de PLASTICO.<br><br>" +
-                  "Introduce tu desecho en el tacho de plasticos.";
-
-    } else if (clase.includes("cart")) {
-
-        mensaje = "📦 Es un residuo de CARTON.<br><br>" +
-                  "Introduce tu desecho en el tacho de carton.";
-
-    } else {
-
-        mensaje = "Residuo detectado: " + mayor.className;
+            window.requestAnimationFrame(loop);
+        }
     }
 
-    document.getElementById("resultado").innerHTML =
-        mensaje + "<br><br>Precisión: " + confianza + "%";
 
-}
+    // RECONOCER EL RESIDUO
+    async function predecir() {
 
-function reiniciar() {
+        const predicciones = await model.predict(webcam.canvas);
 
-    location.reload();
+        let mayor = predicciones[0];
 
-}
+        for (let i = 1; i < predicciones.length; i++) {
+
+            if (
+                predicciones[i].probability >
+                mayor.probability
+            ) {
+                mayor = predicciones[i];
+            }
+        }
+
+        const clase = mayor.className.toLowerCase();
+
+        const confianza =
+            Math.round(mayor.probability * 100);
+
+
+        // NOMBRES BONITOS PARA MOSTRAR
+        const nombres = {
+            organico: "orgánico",
+            plastico: "plástico",
+            carton: "cartón"
+        };
+
+
+        const nombreResiduo =
+            nombres[clase] || mayor.className;
+
+
+        // SI CORRESPONDE A ESTE TACHO
+        if (clase === TACHO) {
+
+            document.getElementById("resultado").innerHTML =
+
+                "✅ ¡Este residuo va aquí!<br><br>" +
+
+                "Es " + nombreResiduo + ".<br>" +
+
+                "Introduce tu desecho en este tacho.<br><br>" +
+
+                "Precisión: " + confianza + "%";
+
+        }
+
+        // SI NO CORRESPONDE
+        else {
+
+            document.getElementById("resultado").innerHTML =
+
+                "❌ Este residuo no va aquí.<br><br>" +
+
+                "Es " + nombreResiduo + ".<br><br>" +
+
+                "Busca el tacho correspondiente.<br><br>" +
+
+                "Precisión: " + confianza + "%";
+        }
+
+    }
 
 </script>
 
