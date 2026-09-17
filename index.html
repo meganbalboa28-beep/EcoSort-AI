@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
+
 <head>
+    <meta charset="UTF-8">
     <title>EcoSort AI</title>
 </head>
 
@@ -10,10 +12,36 @@
 
 <button id="comenzar">COMENZAR</button>
 
+<div id="camara"></div>
+
 <script>
 
-document.getElementById("comenzar").onclick = function() {
-    document.getElementById("comenzar").innerHTML = "¡FUNCIONA!";
+document.getElementById("comenzar").onclick = async function() {
+
+    const video = document.createElement("video");
+
+    video.width = 300;
+    video.height = 300;
+    video.autoplay = true;
+
+    document.getElementById("camara").appendChild(video);
+
+    try {
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: true
+        });
+
+        video.srcObject = stream;
+
+    } catch (error) {
+
+        alert("No se pudo abrir la cámara");
+
+        console.error(error);
+
+    }
+
 };
 
 </script>
