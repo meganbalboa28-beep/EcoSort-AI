@@ -3,17 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>EcoSort AI</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f4f8f3;
+            margin: 0;
+            padding: 25px;
+        }
+
+        .app {
+            max-width: 500px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 25px;
+        }
+
+        h1 {
+            font-size: 35px;
+            margin-bottom: 5px;
+        }
+
+        h2 {
+            margin-top: 10px;
+        }
+
+        button {
+            background: #2e7d32;
+            color: white;
+            border: none;
+            padding: 18px 35px;
+            font-size: 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        #camera {
+            margin-top: 20px;
+        }
+
+        #resultado {
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        #reiniciar {
+            display: none;
+        }
+    </style>
 </head>
 
 <body>
 
-    <h1>EcoSort AI</h1>
-    <h2>Tacho inteligente</h2>
+<div class="app">
 
-    <p>Clasifica tus residuos de manera rápida y responsable.</p>
+    <h1>♻️ EcoSort AI</h1>
 
-    <button>COMENZAR</button>
+    <h2 id="titulo">Tacho inteligente</h2>
+
+    <p id="instruccion">
+        Acerca tu residuo y presiona COMENZAR.
+    </p>
+
+    <button id="comenzar" onclick="iniciar()">
+        COMENZAR
+    </button>
+
+    <div id="camera"></div>
+
+    <div id="resultado"></div>
+
+    <button id="reiniciar" onclick="reiniciar()">
+        VOLVER A INTENTAR
+    </button>
+
+</div>
+
+<script>
+
+const URL = "https://teachablemachine.withgoogle.com/models/y9AIk9YfX/";
+
+let model;
+let webcam;
+let maxPredictions;
+
+async function iniciar() {
+
+    document.getElementById("comenzar").style.display = "none";
+
+    document.getElementById("instruccion").innerText =
+        "Apunta la cámara hacia tu residuo...";
+
+    const modelURL = URL + "model.json";
+    const metadataURL = URL + "metadata.json";
+
+    model = await tmImage.load(modelURL, metadataURL);
+
+    maxPredictions = model.getTotalClasses();
+
+    webcam = new tmImage.Webcam(300, 300, true);
+
+    await webcam.setup();
+
+    await webcam.play();
+
+    document.getElementById("camera").appendChild(webcam.canvas);
+
+    window.requestAnimationFrame(loop);
+}
+
+async function loop() {
+
+    webcam.update();
+
+    await predecir();
+
+    window.requestAnimationFrame(loop);
+}
+
+async function predecir() {
+
+    const predicciones = await model.predict(webcam.canvas);
+
+    let mayor = predicciones[0];
+
+    for (let i = 1; i < predicciones.length; i++) {
+
+        if (predicciones[i].probability > mayor.probability) {
+            mayor = predicciones[i];
+        }
+    }
+
+    const clase = mayor.className.toLowerCase();
+    const confianza = Math.round(mayor.probability * 100);
+
+    let mensaje = "";
+
+    if (clase.includes("organ")) {
+
+        mensaje = "🍎 Es un residuo ORGÁNICO.<br><br>" +
+                  "Introduce tu desecho en el tacho de orgánicos.";
+
+    } else if (clase.includes("plast")) {
+
+        mensaje = "🥤 Es un residuo de PLÁSTICO.<br><br>" +
+                  "Introduce tu desecho en el tacho de plásticos.";
+
+    } else if (clase.includes("cart")) {
+
+        mensaje = "📦 Es un residuo de CARTÓN.<br><br>" +
+                  "Introduce tu desecho en el tacho de cartón.";
+
+    } else {
+
+        mensaje = "Residuo detectado: " + mayor.className;
+    }
+
+    document.getElementById("resultado").innerHTML =
+        mensaje + "<br><br>Precisión: " + confianza + "%";
+
+}
+
+function reiniciar() {
+
+    location.reload();
+
+}
+
+</script>
 
 </body>
 </html>
