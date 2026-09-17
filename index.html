@@ -1,9 +1,15 @@
+
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>EcoSort AI</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
 </head>
 
 <body>
@@ -14,35 +20,95 @@
 
 <div id="camara"></div>
 
+<div id="resultado">
+    Esperando...
+</div>
+
+
 <script>
 
-document.getElementById("comenzar").onclick = async function() {
+const URL = "https://teachablemachine.withgoogle.com/models/y9AIk9YfX/";
 
-    const video = document.createElement("video");
+let model;
+let webcam;
 
-    video.width = 300;
-    video.height = 300;
-    video.autoplay = true;
 
-    document.getElementById("camara").appendChild(video);
+document.getElementById("comenzar").onclick = iniciar;
+
+
+async function iniciar() {
+
+    document.getElementById("resultado").innerHTML =
+        "⏳ Cargando modelo...";
 
     try {
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: true
-        });
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
 
-        video.srcObject = stream;
+        model = await tmImage.load(modelURL, metadataURL);
+
+        webcam = new tmImage.Webcam(300, 300, true);
+
+        await webcam.setup();
+
+        await webcam.play();
+
+        document.getElementById("camara").appendChild(webcam.canvas);
+
+        document.getElementById("resultado").innerHTML =
+            "📷 Cámara lista. Acerca un residuo.";
+
+        detectar();
 
     } catch (error) {
 
-        alert("No se pudo abrir la cámara");
-
         console.error(error);
+
+        document.getElementById("resultado").innerHTML =
+            "❌ Hubo un problema al cargar la cámara o el modelo.";
 
     }
 
-};
+}
+
+
+async function detectar() {
+
+    webcam.update();
+
+    const predicciones =
+        await model.predict(webcam.canvas);
+
+    let mayor = predicciones[0];
+
+    for (let i = 1; i < predicciones.length; i++) {
+
+        if (
+            predicciones[i].probability >
+            mayor.probability
+        ) {
+
+            mayor = predicciones[i];
+
+        }
+
+    }
+
+    const confianza =
+        Math.round(mayor.probability * 100);
+
+    document.getElementById("resultado").innerHTML =
+        "♻️ Residuo detectado: <b>" +
+        mayor.className +
+        "</b><br><br>" +
+        "Precisión: " +
+        confianza +
+        "%";
+
+    requestAnimationFrame(detectar);
+
+}
 
 </script>
 
