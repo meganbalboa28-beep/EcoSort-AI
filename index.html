@@ -1,72 +1,294 @@
-
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title>EcoSort AI</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+
+            margin: 0;
+
+            min-height: 100vh;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            font-family: Arial, sans-serif;
+
+            background: #eaf7ee;
+
+        }
+
+        #inicio {
+
+            text-align: center;
+
+            background: white;
+
+            padding: 40px 30px;
+
+            border-radius: 25px;
+
+            width: 90%;
+
+            max-width: 400px;
+
+            box-shadow: 0 5px 20px rgba(0,0,0,0.12);
+
+        }
+
+        #inicio h1 {
+
+            color: #218c4a;
+
+            font-size: 32px;
+
+            margin-bottom: 10px;
+
+        }
+
+        #inicio h2 {
+
+            color: #333;
+
+        }
+
+        #inicio p {
+
+            color: #555;
+
+            font-size: 17px;
+
+            line-height: 1.5;
+
+        }
+
+        button {
+
+            background: #218c4a;
+
+            color: white;
+
+            border: none;
+
+            padding: 15px 35px;
+
+            border-radius: 12px;
+
+            font-size: 18px;
+
+            cursor: pointer;
+
+            margin-top: 15px;
+
+        }
+
+        #app {
+
+            text-align: center;
+
+            width: 100%;
+
+            padding: 20px;
+
+        }
+
+        #app h1 {
+
+            color: #218c4a;
+
+        }
+
+        #camara {
+
+            margin-top: 20px;
+
+        }
+
+        #resultado {
+
+            background: white;
+
+            padding: 18px;
+
+            margin: 20px auto;
+
+            border-radius: 15px;
+
+            max-width: 400px;
+
+            font-size: 18px;
+
+        }
+
+    </style>
+
 </head>
+
 
 <body>
 
-<h1>♻️ EcoSort AI</h1>
 
-<button id="comenzar">COMENZAR</button>
+<div id="inicio">
 
-<div id="camara"></div>
+    <h1>♻️ EcoSort AI</h1>
 
-<div id="resultado">
-    Esperando...
+    <h2>Tacho inteligente</h2>
+
+    <p>
+        Acerca tu residuo a la cámara
+        y presiona <b>COMENZAR</b>.
+    </p>
+
+    <button id="comenzar">
+        COMENZAR
+    </button>
+
+</div>
+
+
+<div id="app" style="display:none;">
+
+    <h1>♻️ EcoSort AI</h1>
+
+    <div id="camara"></div>
+
+    <div id="resultado">
+        Esperando residuo...
+    </div>
+
 </div>
 
 
 <script>
 
-const URL = "https://teachablemachine.withgoogle.com/models/y9AIk9YfX/";
 
-let model;
-let webcam;
+const URL =
+"https://teachablemachine.withgoogle.com/models/y9AIk9YfX/";
 
 
-document.getElementById("comenzar").onclick = iniciar;
+let model = null;
+
+let webcam = null;
+
+let iniciada = false;
+
+
+document
+.getElementById("comenzar")
+.addEventListener("click", iniciar);
 
 
 async function iniciar() {
 
-    document.getElementById("resultado").innerHTML =
-        "⏳ Cargando modelo...";
+
+    // EVITA QUE LA CÁMARA SE DUPLIQUE
+
+    if (iniciada) {
+
+        return;
+
+    }
+
+
+    iniciada = true;
+
+
+    document
+    .getElementById("inicio")
+    .style.display = "none";
+
+
+    document
+    .getElementById("app")
+    .style.display = "block";
+
+
+    document
+    .getElementById("resultado")
+    .innerHTML =
+    "⏳ Cargando modelo...";
+
 
     try {
 
-        const modelURL = URL + "model.json";
-        const metadataURL = URL + "metadata.json";
 
-        model = await tmImage.load(modelURL, metadataURL);
+        const modelURL =
+        URL + "model.json";
 
-        webcam = new tmImage.Webcam(300, 300, true);
+
+        const metadataURL =
+        URL + "metadata.json";
+
+
+        model =
+        await tmImage.load(
+            modelURL,
+            metadataURL
+        );
+
+
+        webcam =
+        new tmImage.Webcam(
+            300,
+            300,
+            true
+        );
+
 
         await webcam.setup();
 
+
         await webcam.play();
 
-        document.getElementById("camara").appendChild(webcam.canvas);
 
-        document.getElementById("resultado").innerHTML =
-            "📷 Cámara lista. Acerca un residuo.";
+        document
+        .getElementById("camara")
+        .appendChild(webcam.canvas);
+
+
+        document
+        .getElementById("resultado")
+        .innerHTML =
+        "📷 Cámara lista.<br><br>" +
+        "Acerca un residuo.";
+
 
         detectar();
 
+
     } catch (error) {
+
 
         console.error(error);
 
-        document.getElementById("resultado").innerHTML =
-            "❌ Hubo un problema al cargar la cámara o el modelo.";
+
+        document
+        .getElementById("resultado")
+        .innerHTML =
+        "❌ No se pudo iniciar la cámara.";
+
+
+        iniciada = false;
 
     }
 
@@ -75,42 +297,75 @@ async function iniciar() {
 
 async function detectar() {
 
+
+    if (!webcam || !model) {
+
+        return;
+
+    }
+
+
     webcam.update();
 
+
     const predicciones =
-        await model.predict(webcam.canvas);
+    await model.predict(
+        webcam.canvas
+    );
 
-    let mayor = predicciones[0];
 
-    for (let i = 1; i < predicciones.length; i++) {
+    let mayor =
+    predicciones[0];
+
+
+    for (
+        let i = 1;
+        i < predicciones.length;
+        i++
+    ) {
+
 
         if (
             predicciones[i].probability >
             mayor.probability
         ) {
 
-            mayor = predicciones[i];
+            mayor =
+            predicciones[i];
 
         }
 
     }
 
+
     const confianza =
-        Math.round(mayor.probability * 100);
+    Math.round(
+        mayor.probability * 100
+    );
 
-    document.getElementById("resultado").innerHTML =
-        "♻️ Residuo detectado: <b>" +
-        mayor.className +
-        "</b><br><br>" +
-        "Precisión: " +
-        confianza +
-        "%";
 
-    requestAnimationFrame(detectar);
+    document
+    .getElementById("resultado")
+    .innerHTML =
+
+    "♻️ Residuo detectado: <b>" +
+    mayor.className +
+    "</b><br><br>" +
+
+    "Precisión: " +
+    confianza +
+    "%";
+
+
+    requestAnimationFrame(
+        detectar
+    );
 
 }
+
 
 </script>
 
 </body>
+
 </html>
